@@ -8,7 +8,7 @@ def get_completion(system_prompt, prompt, model="gpt-5-nano"):
     completion = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "developer", "content": system_prompt},
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
                 "content": prompt,
@@ -26,13 +26,14 @@ def home():
     prompt = ""
     result = None
     error = None
-    system_prompt = "You are a reasecher AI assistant that helps with research tasks. You write 200 word detailed answers."
-    model = "gpt-5-nano"
+    system_prompt = "You are a reasecher AI assistant that helps with research tasks. You write 500 word detailed answers."
+    model = "gpt-4.1"
     if request.method == 'POST':
         prompt = request.form.get('prompt', '').strip()
         if prompt:
             try:
-                result = get_completion(system_prompt, prompt, model)
+                result_prv = get_completion(system_prompt, prompt, model)
+                word_count = len(result_prv.split())
                 write_to_journal = f"""############################################################
 Model used: {model}
                 
@@ -40,9 +41,38 @@ System_prompt: {system_prompt}
 
 User_Prompt: {prompt}
 
-Response: {result}
+Response: {result_prv}
+
+word_count: {word_count}
 
 ############################################################"""
+# Removed temporarily for being too costly                
+#                 iteration = 0
+#                 word_diff = abs(word_count - 500)
+#                 print(word_diff)
+#                 while (word_diff > 10) and iteration < 5:
+#                     new_promt = f"""The previous response you provided was {word_diff} words long. Please rewrite your previous response to be exactly 500 words. There is the previous response for reference: {result_prv}"""
+#                     result_prv = get_completion(system_prompt, new_promt, model)
+#                     word_count = len(result_prv.split())
+#                     iteration += 1
+#                     write_to_journal = f"""############################################################
+# Model used: {model}
+                
+# System_prompt: {system_prompt}
+
+# User_Prompt: {new_promt}
+
+# Response: {result_prv}
+
+# word_count: {word_count}
+
+# iteration: {iteration}
+# ############################################################"""
+#                     write_to_file('journal.txt', write_to_journal)
+
+
+                result = result_prv
+                
                 write_to_file('journal.txt', write_to_journal)
             except Exception as exc:
                 error = f"Something went wrong: {exc}"
@@ -50,24 +80,6 @@ Response: {result}
             error = "Prompt is required."
 
     return render_template('index.html', prompt=prompt, result=result, error=error)
-
-@app.route('/chatgpt')
-def hello_world_chatgpt():
-    promt = "you are a 15 year old on crack and sleep deprived, and you are trying to convice your friend why webnovels are PEAK"
-    promt2 = """How many continants are there?
-    
-    Give your answer in HTML format with h1 tag for the title and use bullet points for the continants."""
-    # response = client.responses.create(
-    #     model="gpt-5-nano",
-    #     input=promt)
-    # print(response.output[1].content[0].text)
-
-    # text_output = "".join([
-    #     c.text for o in response.output if getattr(o, "content", None)
-    #     for c in o.content if hasattr(c, "text")
-    # ])
-    # print(text_output)
-    return get_completion(promt2)
 
 if __name__ == '__main__':
     app.run(debug=True)
